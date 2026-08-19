@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Kulzzy Traffic Monetization - Admin</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
+</head>
+
+<body class="admin-body">
+
+<div class="admin-wrapper">
+
+  <!-- LOGIN -->
+  <section id="loginSection" class="login-card">
+
+    <div class="brand-circle">K</div>
+
+    <h1>Kulzzy Radio</h1>
+    <h2>Traffic Monetization</h2>
+
+    <p class="muted">
+      Administrator Login
+    </p>
+
+    <input
+      type="email"
+      id="loginEmail"
+      placeholder="Admin email"
+      autocomplete="email"
+    >
+
+    <input
+      type="password"
+      id="loginPassword"
+      placeholder="Password"
+      autocomplete="current-password"
+    >
+
+    <button id="loginBtn" class="primary-btn">
+      LOGIN
+    </button>
+
+    <div id="loginMessage" class="message"></div>
+
+  </section>
+
+
+  <!-- ADMIN APP -->
+  <section id="adminSection" class="hidden">
+
+    <header class="admin-header">
+
+      <div>
+        <div class="admin-brand">
+          KULZZY RADIO
+        </div>
+
+        <h1>Traffic Monetization</h1>
+
+        <p>
+          Manage your paid website advertising campaigns.
+        </p>
+      </div>
+
+      <button id="logoutBtn" class="logout-btn">
+        LOGOUT
+      </button>
+
+    </header>
+
+
+    <!-- DASHBOARD -->
+
+    <div class="dashboard-grid">
+
+      <div class="stat-card">
+        <span>CAMPAIGNS</span>
+        <strong id="totalCampaigns">0</strong>
+      </div>
+
+      <div class="stat-card">
+        <span>ACTIVE</span>
+        <strong id="activeCampaigns">0</strong>
+      </div>
+
+      <div class="stat-card">
+        <span>IMPRESSIONS</span>
+        <strong id="totalImpressions">0</strong>
+      </div>
+
+      <div class="stat-card">
+        <span>CLICKS</span>
+        <strong id="totalClicks">0</strong>
+      </div>
+
+      <div class="stat-card money-card">
+        <span>ADVERTISING REVENUE</span>
+        <strong id="totalRevenue">₦0</strong>
+      </div>
+
+    </div>
+
+
+    <!-- ADD CAMPAIGN -->
+
+    <div class="panel">
+
+      <div class="panel-title">
+        <h2>➕ Add Advertiser</h2>
+        <p>Create a new paid advertising campaign.</p>
+      </div>
+
+      <form id="campaignForm">
+
+        <div class="form-grid">
+
+          <div class="form-group">
+            <label>Business / Advertiser Name</label>
+
+            <input
+              type="text"
+              id="businessName"
+              placeholder="Example: ABC Fashion"
+              required
+            >
+          </div>
+
+
+          <div class="form-group">
+            <label>Amount Paid (₦)</label>
+
+            <input
+              type="number"
+              id="amountPaid"
+              placeholder="25000"
+              min="0"
+              required
+            >
+          </div>
+
+
+          <div class="form-group full">
+            <label>Advertiser Website / Destination</label>
+
+            <input
+              type="url"
+              id="destinationUrl"
+              placeholder="https://example.com"
+              required
+            >
+          </div>
+
+
+          <div class="form-group">
+            <label>Campaign Start</label>
+
+            <input
+              type="datetime-local"
+              id="startDate"
+              required
+            >
+          </div>
+
+
+          <div class="form-group">
+            <label>Campaign End</label>
+
+            <input
+              type="datetime-local"
+              id="endDate"
+              required
+            >
+          </div>
+
+
+          <div class="form-group full">
+
+            <label>Advert Banner</label>
+
+            <input
+              type="file"
+              id="bannerFile"
+              accept="image/*"
+              required
+            >
+
+            <small>
+              Recommended: 1200 × 300 or 1080 × 300
+            </small>
+
+            <div id="imagePreview" class="image-preview"></div>
+
+          </div>
+
+        </div>
+
+
+        <button type="submit" class="primary-btn">
+          CREATE CAMPAIGN
+        </button>
+
+        <div id="campaignMessage" class="message"></div>
+
+      </form>
+
+    </div>
+
+
+    <!-- CAMPAIGNS -->
+
+    <div class="panel">
+
+      <div class="panel-title">
+
+        <h2>📢 Advertising Campaigns</h2>
+
+        <p>
+          Manage your advertisers and view their performance.
+        </p>
+
+      </div>
+
+      <div id="campaignList" class="campaign-list">
+
+        <div class="empty-state">
+          Loading campaigns...
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+</div>
+
+
+<script src="firebase.js"></script>
+<script src="admin.js"></script>
+
+</body>
+</html>
