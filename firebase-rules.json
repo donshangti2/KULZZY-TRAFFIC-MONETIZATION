@@ -1,0 +1,21 @@
+{
+  "rules": {
+    "campaigns": {
+      ".read": true,
+
+      "$campaignId": {
+        ".write": "auth != null",
+
+        "impressions": {
+          ".write": "newData.isNumber() && newData.val() == data.val() + 1",
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+
+        "clicks": {
+          ".write": "newData.isNumber() && newData.val() == data.val() + 1",
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        }
+      }
+    }
+  }
+}
