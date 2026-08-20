@@ -153,28 +153,32 @@ function displayRandomAdvertisement() {
 // IMPRESSION
 // ======================================================
 
-function registerAdImpression(campaignId) {
-
+async function registerAdImpression(campaignId) {
   if (!campaignId) {
+    console.error("No campaign ID for impression.");
     return;
   }
 
+  const impressionRef = database.ref(
+    `campaigns/${campaignId}/impressions`
+  );
 
-  const ref =
-    database
-      .ref(
-        "campaigns/" +
-        campaignId +
-        "/impressions"
-      );
+  try {
+    await impressionRef.transaction(function(currentValue) {
+      return (Number(currentValue) || 0) + 1;
+    });
 
+    console.log(
+      "✅ Impression registered:",
+      campaignId
+    );
 
-  ref.transaction(function(currentValue) {
-
-    return Number(currentValue || 0) + 1;
-
-  });
-
+  } catch (error) {
+    console.error(
+      "❌ Impression registration failed:",
+      error
+    );
+  }
 }
 
 
