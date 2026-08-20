@@ -1,15 +1,33 @@
 // ======================================================
-// KULZZY TRAFFIC MONETIZATION V2
-// ADMIN JAVASCRIPT
+// KULZZY TRAFFIC MONETIZATION
+// ADMIN PANEL
 //
-// IMPORTANT:
+// Cloudinary = banner storage
+// Firebase Realtime Database = campaign data
+// Firebase Authentication = admin login
+//
 // Firebase Storage is NOT used.
-//
-// Advert banners are stored as image URLs in Realtime
-// Database.
-//
 // ======================================================
 
+
+// ======================================================
+// CLOUDINARY
+// ======================================================
+
+const CLOUDINARY_CLOUD_NAME = "s4j0x7dk";
+
+const CLOUDINARY_UPLOAD_PRESET = "kulzzy_ads";
+
+const CLOUDINARY_UPLOAD_URL =
+  `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+
+
+// ======================================================
+// ADMIN UID
+// ======================================================
+
+const ADMIN_UID =
+  "MaWXUVji3nTTRDav5ofv93hxlX83";
 
 
 // ======================================================
@@ -43,37 +61,39 @@ const campaignForm =
 const campaignMessage =
   document.getElementById("campaignMessage");
 
-const bannerUrlInput =
-  document.getElementById("bannerUrl");
+const bannerFile =
+  document.getElementById("bannerFile");
 
 const imagePreview =
   document.getElementById("imagePreview");
+
+const uploadStatus =
+  document.getElementById("uploadStatus");
 
 const createCampaignBtn =
   document.getElementById("createCampaignBtn");
 
 
-
 // ======================================================
-// ADMIN UID
-// ======================================================
-//
-// This is the Firebase Authentication UID you provided.
-//
-// ======================================================
-
-const ADMIN_UID =
-  "MaWXUVji3nTTRDav5ofv93hxlX83";
-
-
-
-// ======================================================
-// LOGIN STATE
+// AUTH STATE
 // ======================================================
 
 auth.onAuthStateChanged(function(user) {
 
   if (user) {
+
+    if (user.uid !== ADMIN_UID) {
+
+      auth.signOut();
+
+      showLoginMessage(
+        "This account is not authorized as administrator.",
+        true
+      );
+
+      return;
+    }
+
 
     loginSection.classList.add("hidden");
 
@@ -90,7 +110,6 @@ auth.onAuthStateChanged(function(user) {
   }
 
 });
-
 
 
 // ======================================================
@@ -110,14 +129,12 @@ loginBtn.addEventListener(
 
     if (!email || !password) {
 
-      loginMessage.textContent =
-        "Please enter email and password.";
-
-      loginMessage.className =
-        "message error";
+      showLoginMessage(
+        "Enter your email and password.",
+        true
+      );
 
       return;
-
     }
 
 
@@ -129,17 +146,31 @@ loginBtn.addEventListener(
 
     try {
 
-      await auth.signInWithEmailAndPassword(
-        email,
-        password
+      const result =
+        await auth.signInWithEmailAndPassword(
+          email,
+          password
+        );
+
+
+      if (
+        result.user.uid !==
+        ADMIN_UID
+      ) {
+
+        await auth.signOut();
+
+        throw new Error(
+          "This account is not authorized."
+        );
+
+      }
+
+
+      showLoginMessage(
+        "",
+        false
       );
-
-
-      loginMessage.textContent =
-        "";
-
-      loginMessage.className =
-        "message";
 
 
     } catch (error) {
@@ -150,12 +181,10 @@ loginBtn.addEventListener(
       );
 
 
-      loginMessage.textContent =
-        "Login failed: " +
-        getFriendlyError(error);
-
-      loginMessage.className =
-        "message error";
+      showLoginMessage(
+        getFriendlyError(error),
+        true
+      );
 
     }
 
@@ -169,16 +198,18 @@ loginBtn.addEventListener(
 );
 
 
-
 // ======================================================
-// ENTER KEY LOGIN
+// ENTER KEY
 // ======================================================
 
 loginPassword.addEventListener(
   "keydown",
   function(event) {
 
-    if (event.key === "Enter") {
+    if (
+      event.key ===
+      "Enter"
+    ) {
 
       event.preventDefault();
 
@@ -190,7 +221,6 @@ loginPassword.addEventListener(
 );
 
 
-
 // ======================================================
 // LOGOUT
 // ======================================================
@@ -199,40 +229,35 @@ logoutBtn.addEventListener(
   "click",
   async function() {
 
-    try {
-
-      await auth.signOut();
-
-    } catch (error) {
-
-      console.error(
-        "LOGOUT ERROR:",
-        error
-      );
-
-    }
+    await auth.signOut();
 
   }
 );
 
 
-
 // ======================================================
-// BANNER URL PREVIEW
+// IMAGE PREVIEW
 // ======================================================
 
-bannerUrlInput.addEventListener(
-  "input",
+bannerFile.addEventListener(
+  "change",
   function() {
 
-    const url =
-      bannerUrlInput.value.trim();
+    const file =
+      bannerFile.files[0];
 
 
-    if (!url) {
+    imagePreview.innerHTML =
+      "";
 
-      imagePreview.innerHTML =
-        "";
+    uploadStatus.textContent =
+      "";
+
+    uploadStatus.className =
+      "message";
+
+
+    if (!file) {
 
       return;
 
@@ -240,34 +265,67 @@ bannerUrlInput.addEventListener(
 
 
     if (
-      !url.startsWith("http://") &&
-      !url.startsWith("https://")
+      !file.type.startsWith(
+        "image/"
+      )
     ) {
 
-      imagePreview.innerHTML = `
-        <p class="error-text">
-          Image URL must start with http:// or https://
-        </p>
-      `;
+      bannerFile.value =
+        "";
+
+      showUploadStatus(
+        "Please select an image file.",
+        true
+      );
 
       return;
 
     }
 
 
-    imagePreview.innerHTML = `
+    if (
+      file.size >
+      10 * 1024 * 1024
+    ) {
 
-      <img
-        src="${escapeHtml(url)}"
-        alt="Banner Preview"
-        onerror="this.parentElement.innerHTML='<p class=&quot;error-text&quot;>Unable to load this image URL.</p>'"
-      >
+      bannerFile.value =
+        "";
 
-    `;
+      showUploadStatus(
+        "Image is too large. Maximum size is 10MB.",
+        true
+      );
+
+      return;
+
+    }
+
+
+    const reader =
+      new FileReader();
+
+
+    reader.onload =
+      function(event) {
+
+        imagePreview.innerHTML = `
+
+          <img
+            src="${event.target.result}"
+            alt="Banner Preview"
+          >
+
+        `;
+
+      };
+
+
+    reader.readAsDataURL(
+      file
+    );
 
   }
 );
-
 
 
 // ======================================================
@@ -285,14 +343,10 @@ campaignForm.addEventListener(
       auth.currentUser;
 
 
-    // --------------------------------------------------
-    // AUTH CHECK
-    // --------------------------------------------------
-
     if (!user) {
 
       showCampaignMessage(
-        "You must be logged in.",
+        "Please log in first.",
         true
       );
 
@@ -301,11 +355,10 @@ campaignForm.addEventListener(
     }
 
 
-    // --------------------------------------------------
-    // ADMIN CHECK
-    // --------------------------------------------------
-
-    if (user.uid !== ADMIN_UID) {
+    if (
+      user.uid !==
+      ADMIN_UID
+    ) {
 
       showCampaignMessage(
         "Administrator access required.",
@@ -316,10 +369,6 @@ campaignForm.addEventListener(
 
     }
 
-
-    // --------------------------------------------------
-    // GET FORM VALUES
-    // --------------------------------------------------
 
     const businessName =
       document
@@ -355,21 +404,18 @@ campaignForm.addEventListener(
         .value;
 
 
-    const bannerUrl =
-      bannerUrlInput
-        .value
-        .trim();
+    const file =
+      bannerFile.files[0];
 
 
-
-    // --------------------------------------------------
+    // ==================================================
     // VALIDATION
-    // --------------------------------------------------
+    // ==================================================
 
     if (!businessName) {
 
       showCampaignMessage(
-        "Please enter the advertiser name.",
+        "Enter the advertiser name.",
         true
       );
 
@@ -379,12 +425,14 @@ campaignForm.addEventListener(
 
 
     if (
-      !Number.isFinite(amountPaid) ||
+      !Number.isFinite(
+        amountPaid
+      ) ||
       amountPaid < 0
     ) {
 
       showCampaignMessage(
-        "Please enter a valid payment amount.",
+        "Enter a valid amount paid.",
         true
       );
 
@@ -396,7 +444,7 @@ campaignForm.addEventListener(
     if (!destinationUrl) {
 
       showCampaignMessage(
-        "Please enter the advertiser destination URL.",
+        "Enter the advertiser destination URL.",
         true
       );
 
@@ -406,12 +454,16 @@ campaignForm.addEventListener(
 
 
     if (
-      !destinationUrl.startsWith("http://") &&
-      !destinationUrl.startsWith("https://")
+      !destinationUrl.startsWith(
+        "http://"
+      ) &&
+      !destinationUrl.startsWith(
+        "https://"
+      )
     ) {
 
       showCampaignMessage(
-        "Destination URL must start with http:// or https://",
+        "Destination URL must begin with http:// or https://",
         true
       );
 
@@ -423,7 +475,7 @@ campaignForm.addEventListener(
     if (!startDate || !endDate) {
 
       showCampaignMessage(
-        "Please select campaign start and end dates.",
+        "Select campaign start and end dates.",
         true
       );
 
@@ -432,20 +484,24 @@ campaignForm.addEventListener(
     }
 
 
-    const startTimestamp =
-      new Date(startDate).getTime();
+    const start =
+      new Date(
+        startDate
+      ).getTime();
 
-    const endTimestamp =
-      new Date(endDate).getTime();
+
+    const end =
+      new Date(
+        endDate
+      ).getTime();
 
 
     if (
-      !Number.isFinite(startTimestamp) ||
-      !Number.isFinite(endTimestamp)
+      end <= start
     ) {
 
       showCampaignMessage(
-        "Invalid campaign dates.",
+        "Campaign end must be after campaign start.",
         true
       );
 
@@ -454,12 +510,10 @@ campaignForm.addEventListener(
     }
 
 
-    if (
-      endTimestamp <= startTimestamp
-    ) {
+    if (!file) {
 
       showCampaignMessage(
-        "Campaign end date must be after start date.",
+        "Select an advert banner.",
         true
       );
 
@@ -468,93 +522,120 @@ campaignForm.addEventListener(
     }
 
 
-    if (!bannerUrl) {
-
-      showCampaignMessage(
-        "Please enter the banner image URL.",
-        true
-      );
-
-      return;
-
-    }
-
-
-    if (
-      !bannerUrl.startsWith("http://") &&
-      !bannerUrl.startsWith("https://")
-    ) {
-
-      showCampaignMessage(
-        "Banner image URL must start with http:// or https://",
-        true
-      );
-
-      return;
-
-    }
-
-
-
-    // --------------------------------------------------
-    // CHECK THAT IMAGE CAN LOAD
-    // --------------------------------------------------
-
-    try {
-
-      await verifyImageUrl(
-        bannerUrl
-      );
-
-    } catch (error) {
-
-      showCampaignMessage(
-        "The banner image could not be loaded. Check the image URL.",
-        true
-      );
-
-      return;
-
-    }
-
-
-
-    // --------------------------------------------------
-    // BUTTON STATE
-    // --------------------------------------------------
+    // ==================================================
+    // BUTTON
+    // ==================================================
 
     createCampaignBtn.disabled =
       true;
 
     createCampaignBtn.textContent =
-      "CREATING...";
+      "UPLOADING BANNER...";
 
 
     showCampaignMessage(
-      "Saving campaign...",
+      "",
       false
     );
 
 
+    showUploadStatus(
+      "Uploading banner to Cloudinary...",
+      false
+    );
+
 
     try {
 
-      // ------------------------------------------------
-      // GENERATE CAMPAIGN ID
-      // ------------------------------------------------
+      // =================================================
+      // CLOUDINARY UPLOAD
+      // =================================================
+
+      const formData =
+        new FormData();
+
+
+      formData.append(
+        "file",
+        file
+      );
+
+
+      formData.append(
+        "upload_preset",
+        CLOUDINARY_UPLOAD_PRESET
+      );
+
+
+      formData.append(
+        "folder",
+        "kulzzy-ads"
+      );
+
+
+      const response =
+        await fetch(
+          CLOUDINARY_UPLOAD_URL,
+          {
+            method:
+              "POST",
+
+            body:
+              formData
+          }
+        );
+
+
+      const cloudinaryData =
+        await response.json();
+
+
+      console.log(
+        "Cloudinary response:",
+        cloudinaryData
+      );
+
+
+      if (
+        !response.ok ||
+        !cloudinaryData.secure_url
+      ) {
+
+        throw new Error(
+          cloudinaryData.error?.message ||
+          "Cloudinary upload failed."
+        );
+
+      }
+
+
+      const bannerUrl =
+        cloudinaryData.secure_url;
+
+
+      showUploadStatus(
+        "Banner uploaded successfully.",
+        false
+      );
+
+
+      // =================================================
+      // SAVE CAMPAIGN TO FIREBASE
+      // =================================================
+
+      createCampaignBtn.textContent =
+        "SAVING CAMPAIGN...";
+
 
       const campaignRef =
-        database.ref("campaigns").push();
+        database
+          .ref("campaigns")
+          .push();
 
 
       const campaignId =
         campaignRef.key;
 
-
-
-      // ------------------------------------------------
-      // CAMPAIGN OBJECT
-      // ------------------------------------------------
 
       const campaign = {
 
@@ -572,6 +653,10 @@ campaignForm.addEventListener(
 
         bannerUrl:
           bannerUrl,
+
+        cloudinaryPublicId:
+          cloudinaryData.public_id ||
+          "",
 
         startDate:
           new Date(
@@ -603,29 +688,28 @@ campaignForm.addEventListener(
       };
 
 
-
-      // ------------------------------------------------
-      // SAVE DIRECTLY TO REALTIME DATABASE
-      // ------------------------------------------------
-
       await campaignRef.set(
         campaign
       );
 
 
-
-      // ------------------------------------------------
+      // =================================================
       // SUCCESS
-      // ------------------------------------------------
+      // =================================================
 
       campaignForm.reset();
 
       imagePreview.innerHTML =
         "";
 
+      showUploadStatus(
+        "",
+        false
+      );
+
 
       showCampaignMessage(
-        "Campaign created successfully!",
+        "🎉 Campaign created successfully!",
         false
       );
 
@@ -633,24 +717,25 @@ campaignForm.addEventListener(
     } catch (error) {
 
       console.error(
-        "CREATE CAMPAIGN ERROR:",
+        "CAMPAIGN ERROR:",
         error
       );
 
 
       showCampaignMessage(
-        "Could not create campaign: " +
+        "Campaign failed: " +
         getFriendlyError(error),
         true
       );
 
+
+      showUploadStatus(
+        "",
+        false
+      );
+
     }
 
-
-
-    // --------------------------------------------------
-    // RESTORE BUTTON
-    // --------------------------------------------------
 
     createCampaignBtn.disabled =
       false;
@@ -660,91 +745,6 @@ campaignForm.addEventListener(
 
   }
 );
-
-
-
-// ======================================================
-// VERIFY IMAGE URL
-// ======================================================
-
-function verifyImageUrl(url) {
-
-  return new Promise(
-    function(resolve, reject) {
-
-      const image =
-        new Image();
-
-
-      let finished =
-        false;
-
-
-      const timeout =
-        setTimeout(
-          function() {
-
-            if (finished) {
-              return;
-            }
-
-            finished = true;
-
-            reject(
-              new Error(
-                "Image loading timeout"
-              )
-            );
-
-          },
-          10000
-        );
-
-
-      image.onload =
-        function() {
-
-          if (finished) {
-            return;
-          }
-
-          finished = true;
-
-          clearTimeout(timeout);
-
-          resolve();
-
-        };
-
-
-      image.onerror =
-        function() {
-
-          if (finished) {
-            return;
-          }
-
-          finished = true;
-
-          clearTimeout(timeout);
-
-          reject(
-            new Error(
-              "Image could not load"
-            )
-          );
-
-        };
-
-
-      image.src =
-        url;
-
-    }
-  );
-
-}
-
 
 
 // ======================================================
@@ -757,10 +757,10 @@ function loadCampaigns() {
     .ref("campaigns")
     .on(
       "value",
-
       function(snapshot) {
 
-        const campaigns = [];
+        const campaigns =
+          [];
 
 
         snapshot.forEach(
@@ -792,12 +792,10 @@ function loadCampaigns() {
         );
 
       },
-
-
       function(error) {
 
         console.error(
-          "LOAD CAMPAIGNS ERROR:",
+          "DATABASE ERROR:",
           error
         );
 
@@ -828,7 +826,6 @@ function loadCampaigns() {
 }
 
 
-
 // ======================================================
 // DASHBOARD
 // ======================================================
@@ -837,38 +834,40 @@ function updateDashboard(
   campaigns
 ) {
 
-  let totalImpressions =
+  let impressions =
     0;
 
-  let totalClicks =
+  let clicks =
     0;
 
-  let totalRevenue =
+  let revenue =
     0;
 
-  let activeCampaigns =
+  let active =
     0;
-
 
 
   campaigns.forEach(
     function(campaign) {
 
-      totalImpressions +=
+      impressions +=
         Number(
-          campaign.impressions || 0
+          campaign.impressions ||
+          0
         );
 
 
-      totalClicks +=
+      clicks +=
         Number(
-          campaign.clicks || 0
+          campaign.clicks ||
+          0
         );
 
 
-      totalRevenue +=
+      revenue +=
         Number(
-          campaign.amountPaid || 0
+          campaign.amountPaid ||
+          0
         );
 
 
@@ -878,13 +877,12 @@ function updateDashboard(
         )
       ) {
 
-        activeCampaigns++;
+        active++;
 
       }
 
     }
   );
-
 
 
   document
@@ -900,7 +898,7 @@ function updateDashboard(
       "activeCampaigns"
     )
     .textContent =
-      activeCampaigns;
+      active;
 
 
   document
@@ -909,7 +907,7 @@ function updateDashboard(
     )
     .textContent =
       formatNumber(
-        totalImpressions
+        impressions
       );
 
 
@@ -919,7 +917,7 @@ function updateDashboard(
     )
     .textContent =
       formatNumber(
-        totalClicks
+        clicks
       );
 
 
@@ -929,11 +927,10 @@ function updateDashboard(
     )
     .textContent =
       formatMoney(
-        totalRevenue
+        revenue
       );
 
 }
-
 
 
 // ======================================================
@@ -950,7 +947,10 @@ function renderCampaigns(
     );
 
 
-  if (!campaigns.length) {
+  if (
+    campaigns.length ===
+    0
+  ) {
 
     container.innerHTML = `
 
@@ -971,7 +971,6 @@ function renderCampaigns(
     "";
 
 
-
   campaigns.forEach(
     function(campaign) {
 
@@ -983,30 +982,26 @@ function renderCampaigns(
 
       const impressions =
         Number(
-          campaign.impressions || 0
+          campaign.impressions ||
+          0
         );
 
 
       const clicks =
         Number(
-          campaign.clicks || 0
+          campaign.clicks ||
+          0
         );
 
 
-      let ctr =
-        0;
-
-
-      if (impressions > 0) {
-
-        ctr =
-          (
-            (clicks / impressions) *
-            100
-          ).toFixed(2);
-
-      }
-
+      const ctr =
+        impressions > 0
+          ? (
+              clicks /
+              impressions *
+              100
+            ).toFixed(2)
+          : "0.00";
 
 
       const card =
@@ -1019,27 +1014,26 @@ function renderCampaigns(
         "campaign-card";
 
 
-
       card.innerHTML = `
 
         <div class="campaign-image">
 
           <img
             src="${escapeHtml(
-              campaign.bannerUrl
+              campaign.bannerUrl ||
+              ""
             )}"
             alt="${escapeHtml(
-              campaign.businessName
+              campaign.businessName ||
+              "Advert"
             )}"
             loading="lazy"
-            onerror="this.style.display='none';"
           >
 
         </div>
 
 
         <div class="campaign-info">
-
 
           <div class="campaign-top">
 
@@ -1048,7 +1042,6 @@ function renderCampaigns(
                 campaign.businessName
               )}
             </h3>
-
 
             <span
               class="status ${
@@ -1069,63 +1062,45 @@ function renderCampaigns(
           </div>
 
 
-
           <p>
-
             💰 Paid:
-
             <strong>
               ${formatMoney(
                 campaign.amountPaid
               )}
             </strong>
-
           </p>
 
 
-
           <p>
-
             👁 Impressions:
-
             <strong>
               ${formatNumber(
                 impressions
               )}
             </strong>
-
           </p>
 
 
-
           <p>
-
             🖱 Clicks:
-
             <strong>
               ${formatNumber(
                 clicks
               )}
             </strong>
-
           </p>
 
 
-
           <p>
-
             📈 CTR:
-
             <strong>
               ${ctr}%
             </strong>
-
           </p>
 
 
-
           <p>
-
             🔗 Destination:
 
             <a
@@ -1137,15 +1112,12 @@ function renderCampaigns(
             >
               Visit
             </a>
-
           </p>
-
 
 
           <p class="campaign-dates">
 
             📅
-
             ${formatDate(
               campaign.startDate
             )}
@@ -1159,9 +1131,7 @@ function renderCampaigns(
           </p>
 
 
-
           <div class="campaign-actions">
-
 
             <button
               class="small-btn"
@@ -1183,7 +1153,6 @@ function renderCampaigns(
             </button>
 
 
-
             <button
               class="small-btn danger"
               type="button"
@@ -1198,9 +1167,7 @@ function renderCampaigns(
 
             </button>
 
-
           </div>
-
 
         </div>
 
@@ -1217,9 +1184,8 @@ function renderCampaigns(
 }
 
 
-
 // ======================================================
-// ACTIVE CAMPAIGN CHECK
+// ACTIVE CAMPAIGN
 // ======================================================
 
 function isCampaignActive(
@@ -1260,7 +1226,6 @@ function isCampaignActive(
 }
 
 
-
 // ======================================================
 // TOGGLE CAMPAIGN
 // ======================================================
@@ -1274,9 +1239,7 @@ async function toggleCampaign(
 
     await database
       .ref(
-        "campaigns/" +
-        id +
-        "/status"
+        `campaigns/${id}/status`
       )
       .set(
         currentlyActive
@@ -1284,14 +1247,11 @@ async function toggleCampaign(
           : "active"
       );
 
-
   } catch (error) {
 
     console.error(
-      "TOGGLE ERROR:",
       error
     );
-
 
     alert(
       "Could not change campaign status: " +
@@ -1303,7 +1263,6 @@ async function toggleCampaign(
 }
 
 
-
 // ======================================================
 // DELETE CAMPAIGN
 // ======================================================
@@ -1312,13 +1271,11 @@ async function deleteCampaign(
   id
 ) {
 
-  const confirmed =
-    confirm(
-      "Delete this advertising campaign permanently?"
-    );
-
-
-  if (!confirmed) {
+  if (
+    !confirm(
+      "Delete this advertising campaign?"
+    )
+  ) {
 
     return;
 
@@ -1327,18 +1284,9 @@ async function deleteCampaign(
 
   try {
 
-    // --------------------------------------------------
-    // REMOVE ONLY THE DATABASE RECORD
-    // --------------------------------------------------
-    //
-    // There is NO Firebase Storage file anymore.
-    //
-    // --------------------------------------------------
-
     await database
       .ref(
-        "campaigns/" +
-        id
+        `campaigns/${id}`
       )
       .remove();
 
@@ -1346,7 +1294,6 @@ async function deleteCampaign(
   } catch (error) {
 
     console.error(
-      "DELETE ERROR:",
       error
     );
 
@@ -1361,39 +1308,68 @@ async function deleteCampaign(
 }
 
 
+// ======================================================
+// MESSAGES
+// ======================================================
 
-// ======================================================
-// CAMPAIGN MESSAGE
-// ======================================================
+function showLoginMessage(
+  text,
+  error
+) {
+
+  loginMessage.textContent =
+    text;
+
+  loginMessage.className =
+    error
+      ? "message error"
+      : "message";
+
+}
+
 
 function showCampaignMessage(
   text,
-  isError
+  error
 ) {
 
   campaignMessage.textContent =
     text;
 
-
   campaignMessage.className =
-    isError
+    error
       ? "message error"
       : "message success";
 
 }
 
 
+function showUploadStatus(
+  text,
+  error
+) {
+
+  uploadStatus.textContent =
+    text;
+
+  uploadStatus.className =
+    error
+      ? "message error"
+      : "message success";
+
+}
+
 
 // ======================================================
-// NUMBER FORMAT
+// FORMATTING
 // ======================================================
 
 function formatNumber(
-  number
+  value
 ) {
 
   return Number(
-    number || 0
+    value || 0
   ).toLocaleString(
     "en-NG"
   );
@@ -1401,19 +1377,14 @@ function formatNumber(
 }
 
 
-
-// ======================================================
-// MONEY FORMAT
-// ======================================================
-
 function formatMoney(
-  number
+  value
 ) {
 
   return (
     "₦" +
     Number(
-      number || 0
+      value || 0
     ).toLocaleString(
       "en-NG"
     )
@@ -1422,29 +1393,22 @@ function formatMoney(
 }
 
 
-
-// ======================================================
-// DATE FORMAT
-// ======================================================
-
 function formatDate(
-  date
+  value
 ) {
 
-  if (!date) {
-
+  if (!value) {
     return "-";
-
   }
 
 
-  const parsed =
-    new Date(date);
+  const date =
+    new Date(value);
 
 
   if (
     Number.isNaN(
-      parsed.getTime()
+      date.getTime()
     )
   ) {
 
@@ -1453,10 +1417,9 @@ function formatDate(
   }
 
 
-  return parsed.toLocaleDateString(
+  return date.toLocaleDateString(
     "en-NG",
     {
-
       day:
         "numeric",
 
@@ -1465,59 +1428,14 @@ function formatDate(
 
       year:
         "numeric"
-
     }
   );
 
 }
 
 
-
 // ======================================================
-// SAFE URL
-// ======================================================
-
-function safeUrl(
-  url
-) {
-
-  try {
-
-    const parsed =
-      new URL(url);
-
-
-    if (
-      parsed.protocol ===
-        "https:" ||
-      parsed.protocol ===
-        "http:"
-    ) {
-
-      return escapeHtml(
-        parsed.href
-      );
-
-    }
-
-  } catch (error) {
-
-    console.error(
-      "Invalid URL:",
-      error
-    );
-
-  }
-
-
-  return "#";
-
-}
-
-
-
-// ======================================================
-// HTML ESCAPE
+// SECURITY HELPERS
 // ======================================================
 
 function escapeHtml(
@@ -1530,7 +1448,6 @@ function escapeHtml(
   ) {
 
     return "";
-
   }
 
 
@@ -1564,26 +1481,13 @@ function escapeHtml(
 }
 
 
-
-// ======================================================
-// JAVASCRIPT STRING ESCAPE
-// ======================================================
-
 function escapeJs(
   value
 ) {
 
-  if (
-    value === undefined ||
-    value === null
-  ) {
-
-    return "";
-
-  }
-
-
-  return String(value)
+  return String(
+    value || ""
+  )
 
     .replace(
       /\\/g,
@@ -1598,66 +1502,65 @@ function escapeJs(
     .replace(
       /"/g,
       '\\"'
-    )
-
-    .replace(
-      /\r/g,
-      "\\r"
-    )
-
-    .replace(
-      /\n/g,
-      "\\n"
     );
 
 }
 
 
+function safeUrl(
+  value
+) {
 
-// ======================================================
-// FRIENDLY FIREBASE ERROR
-// ======================================================
+  try {
+
+    const url =
+      new URL(value);
+
+
+    if (
+      url.protocol === "http:" ||
+      url.protocol === "https:"
+    ) {
+
+      return escapeHtml(
+        url.href
+      );
+
+    }
+
+  } catch (error) {}
+
+  return "#";
+
+}
+
 
 function getFriendlyError(
   error
 ) {
 
-  if (
-    !error
-  ) {
-
+  if (!error) {
     return "Unknown error";
-
   }
 
 
-  if (
-    error.message
-  ) {
-
+  if (error.message) {
     return error.message
       .replace(
         "Firebase:",
         ""
       )
       .trim();
-
   }
 
 
-  return String(
-    error
-  );
+  return String(error);
 
 }
 
 
-
 // ======================================================
-// GLOBAL FUNCTIONS
-// ======================================================
-//
-// Needed by the buttons created inside campaign cards.
+// GLOBAL BUTTON FUNCTIONS
 // ======================================================
 
 window.toggleCampaign =
