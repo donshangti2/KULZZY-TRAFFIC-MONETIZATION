@@ -1,71 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>Kulzzy Traffic Monetization - Admin</title>
 
   <link rel="stylesheet" href="style.css">
 
-  <!-- =====================================================
-       FIREBASE
-       ===================================================== -->
-
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
-
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
-
-  <!-- Kept here because firebase.js currently initializes
-       the storage object. We DO NOT use Storage anymore. -->
-
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
 
 </head>
 
-
 <body class="admin-body">
-
 
 <div class="admin-wrapper">
 
+  <!-- LOGIN -->
 
-  <!-- =====================================================
-       LOGIN
-       ===================================================== -->
+  <section id="loginSection" class="login-card">
 
-  <section
-    id="loginSection"
-    class="login-card"
-  >
+    <div class="brand-circle">K</div>
 
-    <div class="brand-circle">
-      K
-    </div>
+    <h1>Kulzzy Radio</h1>
 
+    <h2>Traffic Monetization</h2>
 
-    <h1>
-      Kulzzy Radio
-    </h1>
-
-
-    <h2>
-      Traffic Monetization
-    </h2>
-
-
-    <p class="muted">
-      Administrator Login
-    </p>
-
+    <p class="muted">Administrator Login</p>
 
     <input
       type="email"
@@ -74,14 +38,12 @@
       autocomplete="email"
     >
 
-
     <input
       type="password"
       id="loginPassword"
       placeholder="Password"
       autocomplete="current-password"
     >
-
 
     <button
       id="loginBtn"
@@ -91,52 +53,28 @@
       LOGIN
     </button>
 
-
-    <div
-      id="loginMessage"
-      class="message"
-    ></div>
-
+    <div id="loginMessage" class="message"></div>
 
   </section>
 
 
+  <!-- ADMIN -->
 
-  <!-- =====================================================
-       ADMIN APPLICATION
-       ===================================================== -->
-
-  <section
-    id="adminSection"
-    class="hidden"
-  >
-
-
-    <!-- =================================================
-         HEADER
-         ================================================= -->
+  <section id="adminSection" class="hidden">
 
     <header class="admin-header">
 
-
       <div>
-
         <div class="admin-brand">
           KULZZY RADIO
         </div>
 
-
-        <h1>
-          Traffic Monetization
-        </h1>
-
+        <h1>Traffic Monetization</h1>
 
         <p>
           Manage your paid website advertising campaigns.
         </p>
-
       </div>
-
 
       <button
         id="logoutBtn"
@@ -146,99 +84,48 @@
         LOGOUT
       </button>
 
-
     </header>
 
 
-
-    <!-- =================================================
-         DASHBOARD
-         ================================================= -->
+    <!-- DASHBOARD -->
 
     <div class="dashboard-grid">
 
-
       <div class="stat-card">
-
-        <span>
-          CAMPAIGNS
-        </span>
-
-        <strong id="totalCampaigns">
-          0
-        </strong>
-
+        <span>CAMPAIGNS</span>
+        <strong id="totalCampaigns">0</strong>
       </div>
 
-
       <div class="stat-card">
-
-        <span>
-          ACTIVE
-        </span>
-
-        <strong id="activeCampaigns">
-          0
-        </strong>
-
+        <span>ACTIVE</span>
+        <strong id="activeCampaigns">0</strong>
       </div>
 
-
       <div class="stat-card">
-
-        <span>
-          IMPRESSIONS
-        </span>
-
-        <strong id="totalImpressions">
-          0
-        </strong>
-
+        <span>IMPRESSIONS</span>
+        <strong id="totalImpressions">0</strong>
       </div>
 
-
       <div class="stat-card">
-
-        <span>
-          CLICKS
-        </span>
-
-        <strong id="totalClicks">
-          0
-        </strong>
-
+        <span>CLICKS</span>
+        <strong id="totalClicks">0</strong>
       </div>
-
 
       <div class="stat-card money-card">
-
-        <span>
-          ADVERTISING REVENUE
-        </span>
-
-        <strong id="totalRevenue">
-          ₦0
-        </strong>
-
+        <span>ADVERTISING REVENUE</span>
+        <strong id="totalRevenue">₦0</strong>
       </div>
-
 
     </div>
 
 
-
-    <!-- =================================================
-         ADD CAMPAIGN
-         ================================================= -->
+    <!-- CREATE CAMPAIGN -->
 
     <div class="panel">
 
-
       <div class="panel-title">
 
-        <h2>
-          ➕ Add Advertiser
-        </h2>
+        <h2>➕ Add Advertiser</h2>
 
         <p>
           Create a new paid advertising campaign.
@@ -247,21 +134,15 @@
       </div>
 
 
-
       <form id="campaignForm">
 
-
         <div class="form-grid">
-
-
-          <!-- BUSINESS NAME -->
 
           <div class="form-group">
 
             <label for="businessName">
               Business / Advertiser Name
             </label>
-
 
             <input
               type="text"
@@ -273,15 +154,11 @@
           </div>
 
 
-
-          <!-- AMOUNT -->
-
           <div class="form-group">
 
             <label for="amountPaid">
               Amount Paid (₦)
             </label>
-
 
             <input
               type="number"
@@ -295,15 +172,11 @@
           </div>
 
 
-
-          <!-- DESTINATION -->
-
           <div class="form-group full">
 
             <label for="destinationUrl">
               Advertiser Website / Destination
             </label>
-
 
             <input
               type="url"
@@ -315,15 +188,11 @@
           </div>
 
 
-
-          <!-- START -->
-
           <div class="form-group">
 
             <label for="startDate">
               Campaign Start
             </label>
-
 
             <input
               type="datetime-local"
@@ -334,15 +203,11 @@
           </div>
 
 
-
-          <!-- END -->
-
           <div class="form-group">
 
             <label for="endDate">
               Campaign End
             </label>
-
 
             <input
               type="datetime-local"
@@ -353,53 +218,39 @@
           </div>
 
 
-
-          <!-- =================================================
-               BANNER URL
-               ================================================= -->
+          <!-- CLOUDINARY IMAGE -->
 
           <div class="form-group full">
 
-
-            <label for="bannerUrl">
-
-              Advert Banner Image URL
-
+            <label>
+              Advert Banner
             </label>
 
-
             <input
-              type="url"
-              id="bannerUrl"
-              placeholder="https://example.com/banner.jpg"
-              required
+              type="file"
+              id="bannerFile"
+              accept="image/jpeg,image/png,image/webp,image/gif"
             >
 
-
             <small>
-
-              Enter the direct URL of your banner image.
-
-              Recommended:
-              1200 × 300 or 1080 × 300.
-
+              Select the advertiser's banner from your phone.
+              The image will be uploaded automatically to Cloudinary.
             </small>
 
+            <div
+              id="uploadStatus"
+              class="message"
+            ></div>
 
             <div
               id="imagePreview"
               class="image-preview"
             ></div>
 
-
           </div>
-
 
         </div>
 
-
-
-        <!-- SUBMIT -->
 
         <button
           type="submit"
@@ -415,26 +266,18 @@
           class="message"
         ></div>
 
-
       </form>
-
 
     </div>
 
 
-
-    <!-- =================================================
-         CAMPAIGNS
-         ================================================= -->
+    <!-- CAMPAIGNS -->
 
     <div class="panel">
 
-
       <div class="panel-title">
 
-        <h2>
-          📢 Advertising Campaigns
-        </h2>
+        <h2>📢 Advertising Campaigns</h2>
 
         <p>
           Manage your advertisers and view their performance.
@@ -454,31 +297,20 @@
 
       </div>
 
-
     </div>
 
-
   </section>
-
 
 </div>
 
 
-
-<!-- =====================================================
-     FIREBASE CONFIG
-     ===================================================== -->
+<!-- Firebase configuration -->
 
 <script src="firebase.js"></script>
 
-
-<!-- =====================================================
-     ADMIN APPLICATION
-     ===================================================== -->
+<!-- Admin application -->
 
 <script src="admin.js"></script>
 
-
 </body>
-
 </html>
